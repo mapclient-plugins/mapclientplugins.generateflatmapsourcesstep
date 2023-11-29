@@ -1,0 +1,6 @@
+
+<RCC>
+  <qresource prefix="generateflatmapsourcesstep">
+    <file>images/morphometric.png</file>
+  </qresource>
+</RCC>
