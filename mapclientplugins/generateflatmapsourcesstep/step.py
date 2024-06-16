@@ -49,12 +49,15 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         if not os.path.isdir(self._portData1):
             os.mkdir(self._portData1)
 
-        c = Context('generate_flatmapsvg')
+        c = Context('generate_flatmap_svg')
         root_region = c.getDefaultRegion()
         root_region.readFile(self._portData0)
 
         exporter = ArgonSceneExporter(self._portData1, self._config['prefix'])
         exporter.export_from_scene(root_region.getScene())
+
+        _create_manifest(self._portData1, self._config['prefix'])
+        _create_description(self._portData1)
 
         self._doneExecution()
 
@@ -131,3 +134,44 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         d.identifierOccursCount = self._identifierOccursCount
         d.setConfig(self._config)
         self._configured = d.validate()
+
+
+def _create_manifest(location, prefix):
+    manifest = {
+        "id": f"vagus-nerve-flatmap",
+        "models": "UBERON:0001759",
+        "description": "description.json",
+        "properties": "properties.json",
+        "sckan-version": "sckan-2024-03-26",
+        "sources": [
+            {
+                "id": "vagus-nerve-01",
+                "href": f"{prefix}.svg",
+                "kind": "base"
+            },
+        ],
+        # "anatomicalMap": "",
+        # "connectivityTerms": "",
+        # "neuronConnectivity": [
+        # ]
+    }
+    markers_file = f"{prefix}_markers.svg"
+    if os.path.exists(os.path.join(location, markers_file)):
+        manifest["sources"].append({
+                "id": "vagus-markers-01",
+                "href": markers_file,
+                "kind": "layer"
+            })
+
+    with open(os.path.join(location, 'manifest.json'), 'w') as f:
+        json.dump(manifest, f, default=lambda o: o.__dict__, sort_keys=True, indent=2)
+
+
+def _create_description(location):
+    description = {
+        "title": "Vagus nerve flatmap",
+        "description": "Files for the vagus nerve flatmap.",
+    }
+
+    with open(os.path.join(location, 'description.json'), 'w') as f:
+        json.dump(description, f, default=lambda o: o.__dict__, sort_keys=True, indent=2)
