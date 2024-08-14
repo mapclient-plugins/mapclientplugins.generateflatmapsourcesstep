@@ -2,6 +2,7 @@
 """
 MAP Client Plugin Step
 """
+import csv
 import json
 import os
 
@@ -26,16 +27,25 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         self.addPort(('http://physiomeproject.org/workflow/1.0/rdf-schema#port',
                       'http://physiomeproject.org/workflow/1.0/rdf-schema#uses',
                       'http://physiomeproject.org/workflow/1.0/rdf-schema#exf_file'))
+        self.addPort([('http://physiomeproject.org/workflow/1.0/rdf-schema#port',
+                       'http://physiomeproject.org/workflow/1.0/rdf-schema#uses',
+                       'http://physiomeproject.org/workflow/1.0/rdf-schema#csv_file'),
+                      ('http://physiomeproject.org/workflow/1.0/rdf-schema#port',
+                       'http://physiomeproject.org/workflow/1.0/rdf-schema#uses',
+                       'http://physiomeproject.org/workflow/1.0/rdf-schema#file_location')
+                      ])
         self.addPort(('http://physiomeproject.org/workflow/1.0/rdf-schema#port',
                       'http://physiomeproject.org/workflow/1.0/rdf-schema#provides',
                       'http://physiomeproject.org/workflow/1.0/rdf-schema#directory_location'))
         # Port data:
         self._portData0 = None  # http://physiomeproject.org/workflow/1.0/rdf-schema#exf_file
-        self._portData1 = None  # http://physiomeproject.org/workflow/1.0/rdf-schema#directory_location
+        self._portData1 = None  # http://physiomeproject.org/workflow/1.0/rdf-schema#csv_file
+        self._portData2 = None  # http://physiomeproject.org/workflow/1.0/rdf-schema#directory_location
         # Config:
         self._config = {
             'identifier': '',
             'prefix': 'flatmap',
+            'clean-output': True,
         }
 
     def execute(self):
@@ -45,19 +55,24 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         may be connected up to a button in a widget for example.
         """
         # Put your execute step code here before calling the '_doneExecution' method.
-        self._portData1 = os.path.join(self._location, f"{self._config['identifier']}-generated")
-        if not os.path.isdir(self._portData1):
-            os.mkdir(self._portData1)
+        self._portData2 = os.path.join(self._location, f"{self._config['identifier']}-generated")
+        if not os.path.isdir(self._portData2):
+            os.mkdir(self._portData2)
+
+        if self._config['clean-output']:
+            for file in _list_files(self._portData2):
+                os.remove(file)
 
         c = Context('generate_flatmap_svg')
         root_region = c.getDefaultRegion()
         root_region.readFile(self._portData0)
 
-        exporter = ArgonSceneExporter(self._portData1, self._config['prefix'])
+        exporter = ArgonSceneExporter(self._portData2, self._config['prefix'])
+        exporter.set_annotations_csv_file(self._portData1)
         exporter.export_from_scene(root_region.getScene())
 
-        _create_manifest(self._portData1, self._config['prefix'])
-        _create_description(self._portData1)
+        _create_manifest(self._portData2, self._config['prefix'])
+        _create_description(self._portData2)
 
         self._doneExecution()
 
@@ -70,7 +85,10 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         :param index: Index of the port to return.
         :param dataIn: The data to set for the port at the given index.
         """
-        self._portData0 = dataIn  # http://physiomeproject.org/workflow/1.0/rdf-schema#exf_file
+        if index == 0:
+            self._portData0 = dataIn  # http://physiomeproject.org/workflow/1.0/rdf-schema#exf_file
+        elif index == 1:
+            self._portData1 = dataIn
 
     def getPortData(self, index):
         """
@@ -80,7 +98,7 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
 
         :param index: Index of the port to return.
         """
-        return self._portData1  # http://physiomeproject.org/workflow/1.0/rdf-schema#directory_location
+        return self._portData2  # http://physiomeproject.org/workflow/1.0/rdf-schema#directory_location
 
     def configure(self):
         """
@@ -175,3 +193,9 @@ def _create_description(location):
 
     with open(os.path.join(location, 'description.json'), 'w') as f:
         json.dump(description, f, default=lambda o: o.__dict__, sort_keys=True, indent=2)
+
+
+def _list_files(path):
+    for _file in os.listdir(path):
+        if os.path.isfile(os.path.join(path, _file)):
+            yield os.path.join(path, _file)

@@ -73,6 +73,7 @@ class ConfigureDialog(QtWidgets.QDialog):
         config = {
             'identifier': self._ui.lineEditIdentifier.text(),
             'prefix': self._ui.lineEditPrefix.text(),
+            'clean-output': True,
         }
         return config
 
