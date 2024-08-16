@@ -161,6 +161,7 @@ def _create_manifest(location, prefix):
         "description": "description.json",
         "properties": "properties.json",
         "sckan-version": "sckan-2024-03-26",
+        "kind": "centreline",
         "sources": [
             {
                 "id": "vagus-nerve-01",
