@@ -49,12 +49,6 @@ class GenerateFlatmapSourcesStep(WorkflowStepMountPoint):
         }
 
     def execute(self):
-        """
-        Add your code here that will kick off the execution of the step.
-        Make sure you call the _doneExecution() method when finished.  This method
-        may be connected up to a button in a widget for example.
-        """
-        # Put your execute step code here before calling the '_doneExecution' method.
         self._portData2 = os.path.join(self._location, f"{self._config['identifier']}-generated")
         if not os.path.isdir(self._portData2):
             os.mkdir(self._portData2)
